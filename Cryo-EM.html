@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="ko" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Cryo-EM Notes</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        html { font-size: 17px; }
+        body { 
+            font-family: 'Noto Sans KR', sans-serif; 
+            line-height: 1.75; 
+            letter-spacing: -0.02em; 
+            color: #334155; 
+            word-break: keep-all; /* 단어 단위로만 줄바꿈 허용 (가독성 최적화) */
+            overflow-wrap: break-word;
+        }
+        
+        .table-container { @apply overflow-x-auto shadow-md sm:rounded-xl mb-8 border border-gray-200; }
+        .data-table { @apply w-full text-base text-left text-gray-700 min-w-[600px]; }
+        .data-table thead { @apply text-sm text-slate-800 uppercase bg-slate-100 font-bold; }
+        .data-table th, .data-table td { @apply px-5 py-4 border-b border-gray-200 leading-relaxed; }
+        .data-table tbody tr { @apply bg-white hover:bg-slate-50 transition-colors; }
+        
+        .section-title { @apply text-3xl md:text-4xl font-black text-slate-900 mb-8 pb-3 border-b-2 border-blue-500 mt-16 tracking-tight; }
+        .sub-title { @apply text-2xl font-bold text-slate-800 mb-5 mt-10 flex items-center tracking-tight; }
+        .sub-title::before { content: ""; display: inline-block; width: 5px; height: 22px; background-color: #3b82f6; margin-right: 10px; border-radius: 3px; }
+        
+        .concept-card { @apply bg-white p-6 rounded-2xl shadow-sm border border-gray-200 mb-6 transition-all hover:shadow-md; }
+        .highlight { @apply font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded; }
+        
+        /* Interactive Section Styling */
+        .interactive-box { @apply bg-slate-800 rounded-2xl p-8 my-10 text-white shadow-xl border border-slate-700; }
+        .slider-control { @apply w-full h-2.5 bg-slate-600 rounded-lg appearance-none cursor-pointer; }
+        .slider-control::-webkit-slider-thumb { appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #3b82f6; cursor: pointer; transition: transform 0.1s; }
+        .slider-control::-webkit-slider-thumb:hover { transform: scale(1.15); }
+        canvas { @apply w-full bg-slate-900 rounded-xl border border-slate-600 shadow-inner min-w-[300px]; }
+        
+        main p.text-sm, main ul.text-sm, main ol.text-sm, main div.text-sm { font-size: 1.05rem; line-height: 1.8; }
+        .concept-card h4 { @apply text-xl mb-3; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 flex flex-col md:flex-row min-h-screen">
+
+    <!-- Sidebar Navigation -->
+    <aside class="w-full md:w-64 bg-white shadow-md md:fixed h-auto md:h-screen overflow-y-auto z-10 flex-shrink-0 border-r border-gray-200">
+        <div class="p-6">
+            <h2 class="text-2xl font-black text-blue-700 mb-6 tracking-tight">Cryo-EM<br><span class="text-slate-400 text-base font-medium">Interactive Notes</span></h2>
+            <nav class="space-y-2 text-base font-medium text-slate-600">
+                <a href="#intro" class="block p-2.5 rounded-md hover:bg-blue-50 hover:text-blue-700 transition-colors">Introduction</a>
+                <a href="#part1" class="block p-2.5 rounded-md hover:bg-blue-50 hover:text-blue-700 transition-colors">Part 1: Basic anatomy</a>
+                <a href="#part2" class="block p-2.5 rounded-md bg-blue-50 text-blue-700 transition-colors flex justify-between items-center">Part 2: Fourier transforms <span class="text-xs bg-blue-200 text-blue-800 px-2 py-0.5 rounded">실습</span></a>
+                <a href="#part3" class="block p-2.5 rounded-md bg-blue-50 text-blue-700 transition-colors flex justify-between items-center">Part 3: Image formation <span class="text-xs bg-blue-200 text-blue-800 px-2 py-0.5 rounded">실습</span></a>
+                <a href="#part4" class="block p-2.5 rounded-md hover:bg-blue-50 hover:text-blue-700 transition-colors">Part 4: Challenges</a>
+                <a href="#part5" class="block p-2.5 rounded-md hover:bg-blue-50 hover:text-blue-700 transition-colors">Part 5: Tomography</a>
+                <a href="#part6" class="block p-2.5 rounded-md hover:bg-blue-50 hover:text-blue-700 transition-colors">Part 6: Single-particle (SPA)</a>
+                <a href="#part7" class="block p-2.5 rounded-md hover:bg-blue-50 hover:text-blue-700 transition-colors">Part 7: 2D crystallography</a>
+            </nav>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-6 md:p-10 md:ml-64 w-full max-w-[1920px] mx-auto">
+        
+        <!-- Header -->
+        <header class="mb-12 bg-white p-8 rounded-2xl shadow-sm border-t-4 border-blue-600">
+            <div class="inline-block px-3 py-1 bg-blue-100 text-blue-700 font-bold text-xs rounded-full mb-4">Caltech & HHMI Grant Jensen 강의 기반</div>
+            <h1 class="text-3xl md:text-5xl font-black text-slate-900 mb-4 tracking-tight">Getting Started in Cryo-EM</h1>
+            <p class="text-lg text-slate-600 mb-4">상세한 이론 설명과 파라미터 조작을 통해 알아보는 초저온 전자현미경의 원리와 실전 적용</p>
+            <div class="mt-6 p-4 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700">
+                <strong class="text-slate-900 block mb-1">학습 목표</strong> 
+                단순한 기기 조작을 넘어, 현미경 내부에서 일어나는 전자와 시료의 상호작용, 푸리에 변환 수학적 원리, 그리고 CTF(Contrast Transfer Function)의 작용을 심도 있게 이해합니다.
+            </div>
+        </header>
+
+        <!-- Introduction -->
+        <section id="intro">
+            <h2 class="section-title">Introduction</h2>
+            
+            <h3 class="sub-title">왜 광원(Radiation)으로 전자를 사용하는가?</h3>
+            <p class="mb-4 text-slate-600 leading-relaxed">구조 생물학에서 현미경을 제작할 때 가시광선, X-ray, 중성자, 전자 등 다양한 광원을 사용할 수 있습니다. 각 광원은 해상도와 샘플 손상도 측면에서 고유한 장단점을 지닙니다.</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                <div class="concept-card">
+                    <h4 class="font-bold text-lg mb-3 flex items-center"><span class="text-yellow-500 mr-2">☀</span> Visible light (가시광선)</h4>
+                    <p class="text-sm font-bold text-green-600 mb-1">강점</p>
+                    <ul class="list-disc pl-5 text-sm mb-3 text-slate-600 space-y-1">
+                        <li>생체 샘플에 손상이 최소화됨 (세포는 이미 햇빛에 적응되어 있음).</li>
+                        <li>세포를 살아있는 수분 상태 그대로 관찰 가능.</li>
+                        <li>유리 렌즈(Glass lens)를 사용하여 초점을 맞추기 매우 쉽고, 인간의 눈이라는 훌륭한 검출기를 바로 사용할 수 있음.</li>
+                    </ul>
+                    <p class="text-sm font-bold text-red-500 mb-1">한계</p>
+                    <ul class="list-disc pl-5 text-sm text-slate-600">
+                        <li>빛의 파장이 ~400nm로 길어 <strong>회절 한계(diffraction limit)</strong>에 의해 분자 수준의 해상도를 얻을 수 없음.</li>
+                    </ul>
+                </div>
+                
+                <div class="concept-card">
+                    <h4 class="font-bold text-lg mb-3 flex items-center"><span class="text-purple-500 mr-2">⚡</span> X-ray</h4>
+                    <p class="text-sm font-bold text-green-600 mb-1">강점</p>
+                    <ul class="list-disc pl-5 text-sm mb-3 text-slate-600 space-y-1">
+                        <li>파장이 1~1.2Å 수준으로 <strong>원자 수준의 해상도</strong> 획득 가능.</li>
+                        <li>투과력(Penetration)이 매우 뛰어나 두꺼운 샘플도 통과함.</li>
+                    </ul>
+                    <p class="text-sm font-bold text-red-500 mb-1">한계</p>
+                    <ul class="list-disc pl-5 text-sm text-slate-600">
+                        <li>X선을 굴절시킬 렌즈가 없어 <strong>초점을 맞추는 것(Focusing)이 불가능</strong>함 (회절 패턴만 수집 후 수학적으로 해결해야 함).</li>
+                        <li>생체 시료에 고선량 방사선 손상(Damage)을 유발함.</li>
+                    </ul>
+                </div>
+
+                <div class="concept-card bg-blue-50 border-blue-200 md:col-span-2">
+                    <h4 class="font-bold text-xl mb-3 text-blue-800 flex items-center">⚛️ Electron (전자) - Cryo-EM의 핵심</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-sm font-bold text-green-700 mb-1">강점 (왜 전자인가?)</p>
+                            <ul class="list-disc pl-5 text-sm mb-3 text-slate-700 space-y-1">
+                                <li>de Broglie의 물질파 이론에 의해, 전자를 고전압으로 가속하면 매우 짧은 파장을 가짐.</li>
+                                <li><span class="highlight">300kV로 가속된 전자의 파장(λ) ≈ 0.02Å (2pm).</span> 원자 크기보다 훨씬 작아 원자 해상도를 충분히 달성할 수 있음.</li>
+                                <li>전자기 코일(Magnetic coil)을 이용해 <strong>전자 렌즈로 초점을 맞출 수 있음.</strong></li>
+                            </ul>
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold text-red-600 mb-1">한계 (극복해야 할 과제)</p>
+                            <ul class="list-disc pl-5 text-sm text-slate-700 space-y-1">
+                                <li><span class="highlight">방사선 손상(Radiation damage)이 극심.</span> 에너지가 생체 분자의 결합을 파괴함. (저온/저선량 촬영으로 극복)</li>
+                                <li>투과력이 약해 두꺼운 샘플(약 0.5μm 이상)은 전자가 통과하지 못하고 다중 산란을 일으킴. (얇은 얼음 상태 제작 필수)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Part 1 -->
+        <section id="part1">
+            <h2 class="section-title">Part 1 : Basic anatomy of the EM (현미경 기본 구조)</h2>
+            
+            <h3 class="sub-title">1. 전자총(Electron Gun)의 원리와 가속</h3>
+            <p class="text-sm text-slate-600 mb-4">전자를 발생시키고 초고속으로 가속하는 현미경의 엔진 역할을 합니다.</p>
+            <ul class="list-disc pl-5 mb-6 text-slate-700 space-y-2 text-sm">
+                <li><strong>Thermionic emission (열전자 방출):</strong> 텅스텐이나 LaB6 필라멘트에 전류를 흘려 가열하면, 전자가 Work function을 극복하고 초고진공 상태로 방출됩니다.</li>
+                <li><strong>가속과 속도:</strong> 방출된 전자는 -300kV에서 0V로 떨어지는 전위차를 통해 가속됩니다. Accelerator stack의 10개 디스크가 저항 체인 역할을 하여 안정적으로 가속합니다. 300kV로 가속된 전자의 속도는 <span class="highlight">빛의 속도의 약 77% (v=0.77c)</span>에 달합니다.</li>
+                <li><strong>전자총의 발전:</strong> 최근에는 <strong>FEG (Field Emission Gun)</strong>가 주로 쓰입니다. 끝이 뾰족한 팁에서 강한 전기장으로 전자를 뽑아내어(터널링 효과) Coherence(결맞음)가 매우 높은 고품질 빔을 생성합니다.</li>
+            </ul>
+
+            <h3 class="sub-title">2. 렌즈 시스템 (Magnetic Lenses)</h3>
+            <p class="text-sm text-slate-600 mb-4">광학 현미경의 유리 렌즈처럼, 전자 현미경은 <strong>전자기 코일</strong>이 만드는 도넛 모양의 자기장(Toroidal magnetic field)으로 전자를 굴절시킵니다.</p>
+            <div class="table-container">
+                <table class="data-table">
+                    <thead><tr><th>렌즈 구분</th><th>주요 역할 및 구성 요소</th><th>핵심 파라미터 제어</th></tr></thead>
+                    <tbody>
+                        <tr>
+                            <td class="font-bold">Condenser Lens<br>(C1, C2)</td>
+                            <td>전자총에서 나온 빔을 샘플 위에 모아주고 크기를 조절합니다.</td>
+                            <td><strong>Spot size (C1):</strong> 빔 크기 조절<br><strong>Intensity (C2):</strong> 빔의 세기와 교차점(Crossover) 상하 조절</td>
+                        </tr>
+                        <tr>
+                            <td class="font-bold">Objective Lens<br>(대물렌즈)</td>
+                            <td>샘플을 통과한 전자를 모아 최초의 고배율 이미지를 생성합니다. 해상도를 결정짓는 가장 중요한 렌즈입니다.</td>
+                            <td><strong>Focus:</strong> 샘플의 초점 조절 및 Defocus 생성.</td>
+                        </tr>
+                        <tr>
+                            <td class="font-bold">Projector Lens</td>
+                            <td>대물렌즈가 만든 이미지를 추가로 수백만 배 확대하여 최종 검출기에 투사합니다.</td>
+                            <td><strong>Magnification:</strong> 전체적인 배율 프리셋 조절.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 class="sub-title">3. 진공 시스템 (Vacuum System)</h3>
+            <p class="text-sm text-slate-600 mb-2">전자 빔이 공기 분자와 부딪혀 산란되는 것을 막고, 고전압으로 인한 방전(Discharge)을 방지하기 위해 현미경 내부는 초고진공(Ultra-high vacuum) 상태를 유지해야 합니다.</p>
+            <div class="bg-slate-100 p-5 rounded-xl text-sm text-slate-700 mb-6">
+                <strong class="block mb-2">단계별 진공 펌프 가동 순서 (Vent -> Pump-down)</strong>
+                <ol class="list-decimal pl-5 space-y-1">
+                    <li><strong>Mechanical/Rotary Pump (1단계):</strong> 대기압에서 시작하여 초기 진공(~10⁻³ Torr)을 형성. 진동이 커서 촬영 중에는 꺼두는 것이 좋음.</li>
+                    <li><strong>Oil Diffusion Pump (2단계):</strong> 끓는 기름 증기가 가스 분자를 아래로 쳐내어 진공도를 높임 (~10⁻⁶ Torr). 소음이 적어 상시 가동.</li>
+                    <li><strong>Ion Getter Pump (최종 단계):</strong> 남은 가스 분자를 이온화하여 금속 전극에 영구적으로 박아버림 (Embed). <strong>초고진공(10⁻¹⁰ Torr)</strong>을 만들어내며, 전자총(Gun) 영역에 주로 사용.</li>
+                </ol>
+            </div>
+        </section>
+
+        <!-- Part 2 with Interactive Simulation -->
+        <section id="part2">
+            <h2 class="section-title text-blue-700">Part 2 : Fourier transforms and reciprocal space <span class="bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-bold align-middle ml-2 shadow">실습 포함</span></h2>
+            
+            <p class="text-slate-600 mb-4 leading-relaxed">디지털화된 단백질 밀도 이미지나 복잡한 신호는 여러 개의 단순한 파동(Sine waves)들의 합으로 완벽하게 분해하고 재구성할 수 있습니다. 이것이 <strong>Fourier Transform(푸리에 변환)</strong>의 핵심입니다.</p>
+
+            <h3 class="sub-title">1. 복잡한 파동의 분해와 합성</h3>
+            <p class="text-sm text-slate-700 mb-4">하나의 파동은 진폭(Amplitude), 주파수(Frequency), 위상(Phase)으로 정의됩니다. 고주파수(짧은 파장) 성분이 더해질수록 미세한 디테일이 형성됩니다.</p>
+
+            <!-- INTERACTIVE SIMULATOR 1 -->
+            <div class="interactive-box">
+                <div class="flex justify-between items-center mb-4">
+                    <h4 class="text-xl font-bold flex items-center">🌊 1D 푸리에 파동 합성 시뮬레이터</h4>
+                    <span class="text-xs bg-slate-700 px-2 py-1 rounded text-slate-300">Interact Below</span>
+                </div>
+                <p class="text-sm text-slate-300 mb-6">아래 슬라이더를 조절하여 기본파(Fundamental)와 배음(Harmonics)의 진폭(Amplitude)을 섞어보세요. 3개의 단순 사인파가 더해져 복잡한 합성 파형을 만들어내는 과정을 볼 수 있습니다.</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Controls -->
+                    <div class="space-y-6">
+                        <div>
+                            <label class="flex justify-between text-sm font-bold mb-2">
+                                <span class="text-blue-400">Fundamental (주파수 1x)</span>
+                                <span id="val1">1.0</span>
+                            </label>
+                            <input type="range" id="wave1" min="-2" max="2" step="0.1" value="1.0" class="slider-control" oninput="updateWaves()">
+                            <p class="text-xs text-slate-400 mt-1">기본적인 큰 윤곽을 결정합니다.</p>
+                        </div>
+                        <div>
+                            <label class="flex justify-between text-sm font-bold mb-2">
+                                <span class="text-green-400">1st Harmonic (주파수 2x)</span>
+                                <span id="val2">0.5</span>
+                            </label>
+                            <input type="range" id="wave2" min="-2" max="2" step="0.1" value="0.5" class="slider-control" oninput="updateWaves()">
+                        </div>
+                        <div>
+                            <label class="flex justify-between text-sm font-bold mb-2">
+                                <span class="text-red-400">2nd Harmonic (주파수 3x)</span>
+                                <span id="val3">0.2</span>
+                            </label>
+                            <input type="range" id="wave3" min="-2" max="2" step="0.1" value="0.2" class="slider-control" oninput="updateWaves()">
+                            <p class="text-xs text-slate-400 mt-1">고주파수 성분으로 미세한 굴곡(디테일)을 형성합니다.</p>
+                        </div>
+                        <button onclick="resetWaves()" class="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded transition-colors text-sm">
+                            초기화 (Reset)
+                        </button>
+                    </div>
+
+                    <!-- Canvas -->
+                    <div class="relative w-full overflow-hidden">
+                        <canvas id="waveCanvas" width="400" height="250" class="w-full h-full bg-slate-900"></canvas>
+                        <div class="absolute top-2 right-2 text-xs text-slate-500 font-mono bg-slate-800/80 px-2 py-1 rounded">Sum = Σ A_n sin(n·x)</div>
+                    </div>
+                </div>
+            </div>
+
+            <h3 class="sub-title">2. Real Space vs Reciprocal Space</h3>
+            <p class="text-sm text-slate-700 mb-4">실공간(이미지)과 상호공간(푸리에 변환 결과)은 동일한 정보를 다른 언어로 표현한 것입니다.</p>
+            <div class="table-container">
+                <table class="data-table">
+                    <thead><tr><th>Real Space (실공간)</th><th>Reciprocal Space (상호공간 / 푸리에 공간)</th></tr></thead>
+                    <tbody>
+                        <tr>
+                            <td>각 픽셀의 <strong>위치(x, y)</strong>와 단백질 <strong>밀도 값(Density)</strong>으로 구성된 2D/3D 이미지.</td>
+                            <td>각 방향의 <strong>공간 주파수(h, k)</strong> 성분이 가진 <strong>진폭(Amplitude)</strong>과 <strong>위상(Phase)</strong>의 배열.</td>
+                        </tr>
+                        <tr>
+                            <td>우리가 눈으로 직관적으로 보는 물체의 형태.</td>
+                            <td>원점(중심)은 저주파로 '전체적인 윤곽'을, 모서리로 갈수록 고주파로 '세밀한 디테일(원자 간 간격 등)'을 나타냄.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 class="sub-title">3. Convolution (합성곱)과 Cross-correlation (교차상관)</h3>
+            <ul class="list-disc pl-5 text-sm text-slate-700 space-y-2">
+                <li><strong>Convolution:</strong> 한 함수를 다른 함수에 '퍼뜨려 섞는' 수학 연산입니다. 현미경의 Point Spread Function(PSF)이 원본 시료의 이상적인 이미지에 Convolution되어 블러(Blur)가 발생한 최종 이미지가 형성됩니다.</li>
+                <li><strong>Cross-correlation:</strong> 두 이미지가 '얼마나 비슷하고 어느 위치에 겹치는지'를 찾는 연산입니다. Cryo-EM에서 넓은 화면 속에 숨어있는 수만 개의 단백질 입자를 자동으로 찾아내는 <strong>Particle Picking</strong>의 핵심 원리입니다.</li>
+                <li>두 연산 모두 실공간에서 계산하면 픽셀 개수만큼 곱해야 해서 매우 느리지만, <span class="highlight">푸리에 공간으로 변환하여 곱하면(Convolution Theorem) 초고속으로 계산</span>할 수 있습니다.</li>
+            </ul>
+        </section>
+
+        <!-- Part 3 with Interactive Simulation -->
+        <section id="part3">
+            <h2 class="section-title text-blue-700">Part 3 : Image formation <span class="bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-bold align-middle ml-2 shadow">실습 포함</span></h2>
+
+            <h3 class="sub-title">1. Phase Contrast (위상 대비)의 형성</h3>
+            <p class="text-slate-600 mb-4 leading-relaxed">
+                전자 현미경의 빔이 얇은 생체 시료(단백질 등)를 통과할 때, 전자의 에너지를 잃고 흡수되는 진폭 대비(Amplitude contrast)는 10% 미만으로 매우 약합니다. 대신, 시료의 밀도 차이에 의해 전자의 <strong>진행 속도(위상, Phase)</strong>가 변하게 됩니다. 현미경 렌즈와 디포커스를 이용해 이 미세한 위상 차이를 화면 상의 명암(Contrast) 차이로 변환하는 것이 <strong>위상 대비(Phase Contrast)</strong>의 핵심입니다.
+            </p>
+
+            <h3 class="sub-title">2. Contrast Transfer Function (CTF)</h3>
+            <p class="text-sm text-slate-700 mb-4">
+                완벽한 렌즈는 없으며, 우리가 초점을 고의로 빗나가게(Defocus) 설정함에 따라 공간 주파수(Spatial frequency, $k$)별로 신호가 진동하며 전달됩니다. 이 전달 함수를 <strong>CTF</strong>라고 부르며, 수식은 다음과 같습니다.
+            </p>
+            <div class="bg-slate-100 p-4 rounded-lg mb-6 font-mono text-sm text-center font-bold text-slate-800 break-all">
+                CTF(k) = sin( π · λ · Δf · k² + ½ · π · Cs · λ³ · k⁴ )
+            </div>
+            <p class="text-sm text-slate-600 mb-6">
+                여기서 <strong>Δf(Defocus)</strong> 값을 변화시키면 곡선의 진동 주기가 크게 바뀝니다. CTF 곡선이 양수/음수일 때만 정보가 기록되며, 0을 지나는 지점(Zero-crossing)에서는 정보가 완전히 소실됩니다.
+            </p>
+
+            <!-- INTERACTIVE SIMULATOR 2 -->
+            <div class="interactive-box">
+                <div class="flex justify-between items-center mb-4">
+                    <h4 class="text-xl font-bold flex items-center">🔬 CTF & Defocus 시뮬레이터</h4>
+                    <span class="text-xs bg-slate-700 px-2 py-1 rounded text-slate-300">Interact Below</span>
+                </div>
+                <p class="text-sm text-slate-300 mb-6 leading-loose">
+                    슬라이더를 움직여 <strong>Defocus(초점 이탈)</strong> 값을 조절해 보세요. (고정 변수: 300kV 전자 파장 $\lambda \approx 0.02Å$, 구면수차 $Cs = 2.7mm$)<br>
+                    - <span class="text-blue-300">낮은 Defocus:</span> 곡선이 천천히 진동하여 고해상도(우측) 정보 보존에 유리하나, 저해상도(좌측) 대비가 약해 입자가 잘 안 보임.<br>
+                    - <span class="text-pink-300">높은 Defocus:</span> 저해상도 대비가 강해져 화면에서 입자를 찾기 쉽지만, 고해상도 정보가 빠르게 진동하며 상쇄(Envelope)되어 디테일이 손상됨.
+                </p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                    <!-- Controls -->
+                    <div class="space-y-6">
+                        <div>
+                            <label class="flex justify-between text-lg font-black text-blue-300 mb-2">
+                                <span>Defocus (Δf)</span>
+                                <span><span id="defocusVal">2.0</span> μm</span>
+                            </label>
+                            <input type="range" id="defocusSlider" min="0.5" max="5.0" step="0.1" value="2.0" class="slider-control h-3" oninput="drawCTF()">
+                        </div>
+                        <div class="bg-slate-700 p-4 rounded-lg text-xs text-slate-300 space-y-2">
+                            <p><strong>X축:</strong> 공간 주파수 $k$ (우측으로 갈수록 고해상도/미세한 구조)</p>
+                            <p><strong>Y축:</strong> Contrast 전달률 (-1 ~ 1)</p>
+                            <p class="text-yellow-400 mt-2">* 곡선이 0을 지나는 곳에서는 데이터가 완전히 손실됩니다. 이를 복원하기 위해 여러 Defocus 값으로 촬영 후 소프트웨어 보정(CTF Correction)을 수행합니다.</p>
+                        </div>
+                    </div>
+
+                    <!-- Canvas -->
+                    <div class="relative w-full overflow-hidden">
+                        <canvas id="ctfCanvas" width="400" height="250" class="w-full h-full bg-slate-900"></canvas>
+                        <!-- Grid overlays -->
+                        <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
+                            <div class="w-full h-[1px] bg-slate-600/50"></div> <!-- X axis -->
+                        </div>
+                        <div class="absolute bottom-1 left-2 text-[10px] text-slate-500">Low Res</div>
+                        <div class="absolute bottom-1 right-2 text-[10px] text-slate-500">High Res (k) -></div>
+                    </div>
+                </div>
+            </div>
+
+            <h3 class="sub-title">3. Envelopes Function (부분 결맞음 감쇠)</h3>
+            <p class="text-sm text-slate-700 mb-4">
+                실제 현미경에서는 전자빔이 완벽하게 한 점에서 동일한 속도로 나오지 않습니다. 이로 인해 고해상도(고주파수)로 갈수록 신호가 점점 약해져 0에 수렴하는 <strong>Envelope(감쇠)</strong> 현상이 발생합니다.
+            </p>
+            <ul class="list-disc pl-5 text-sm text-slate-700 space-y-2">
+                <li><strong>Spatial Coherence (공간적 결맞음):</strong> 전자들이 미세하게 다른 각도로 입사하여 발생하는 빔의 퍼짐.</li>
+                <li><strong>Temporal Coherence (시간적 결맞음):</strong> 전자의 에너지(속도)가 미세하게 달라 초점 평면이 흔들리는 현상.</li>
+            </ul>
+        </section>
+
+        <!-- Part 4 -->
+        <section id="part4">
+            <h2 class="section-title">Part 4 : Fundamental Challenges in Biological EM</h2>
+
+            <h3 class="sub-title">1. 시료 준비 기술 (Sample Preparation)</h3>
+            <p class="text-sm text-slate-600 mb-4">생체 분자를 현미경 진공 내부에서 원래의 구조(Native state) 그대로 유지하기 위한 다양한 방식이 발전해 왔습니다.</p>
+            
+            <div class="table-container">
+                <table class="data-table">
+                    <thead><tr><th>방법론</th><th>원리 및 프로세스</th><th>장점</th><th>단점 / 한계</th></tr></thead>
+                    <tbody>
+                        <tr>
+                            <td class="font-bold text-slate-800">Thin-section (실온)</td>
+                            <td>알데하이드, 오스뮴으로 화학적 고정 후, 에탄올 탈수, 플라스틱 수지 포매, 초미세절삭기(microtome)로 60-90nm 절삭.</td>
+                            <td>세포 전체 구조나 큰 조직의 형태 보존 및 대량 절편 가능.</td>
+                            <td>탈수와 수지 수축으로 인해 <strong>원래의 분자 구조(Native state) 완전 손실</strong>. 해상도 저하(10~50nm).</td>
+                        </tr>
+                        <tr>
+                            <td class="font-bold text-slate-800">Negative Staining</td>
+                            <td>우라닐 아세테이트 등 중금속 염색약 사용. 단백질은 염색되지 않아 밝게 보이고, 배경 중금속 층이 어둡게 대비를 형성.</td>
+                            <td>수 분 내로 빠르고 쉽게 준비. 초기 입자 확인(Screening)에 매우 유리함.</td>
+                            <td>건조로 인해 시료 납작해짐. 해상도 한계(~20Å).</td>
+                        </tr>
+                        <tr>
+                            <td class="font-bold text-blue-700 bg-blue-50">Plunge Freezing<br>(Cryo-EM 표준)</td>
+                            <td class="bg-blue-50">EM Grid에 액체를 올리고 여분을 닦아낸 후(Blotting), 액체 에탄/프로판(-180℃)에 <strong>초고속 침수(>100,000℃/s).</strong></td>
+                            <td class="bg-blue-50"><strong>Vitreous ice(비정질 얼음) 형성.</strong> 얼음 결정 생성 없이 시료의 수분 환경과 고유 상태 완벽 보존. 원자 해상도 달성 가능.</td>
+                            <td class="bg-blue-50">전자가 투과해야 하므로 <strong>극도로 얇아야 함(수십 nm 제한)</strong>. 냉동 주름(Cryo-crinkling) 발생.</td>
+                        </tr>
+                        <tr>
+                            <td class="font-bold text-slate-800">FIB Milling</td>
+                            <td>Gallium 이온 빔을 쏘아 두꺼운 냉동 세포의 위아래를 깎아내어 100~200nm 두께의 얇은 람멜라(Lamella) 조각을 만듦.</td>
+                            <td>Plunge freezing이 불가능한 두꺼운 세포 내부를 손상 없이(In situ) 관찰 가능. Cryo-ET의 핵심.</td>
+                            <td>이온 오염, 람멜라가 깨지기 쉬움. 1개 제작에 1~2시간 소요되어 생산성 낮음.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 class="sub-title">2. 방사선 손상과 선량 제한 (Radiation Damage & Dose Limitations)</h3>
+            <p class="text-sm text-slate-700 mb-2">전자 빔은 강력한 전리 방사선으로, 직접 충돌(Knock-on), 2차 전자 발생(Ionization), 열 축적 등을 일으켜 단백질 결합을 파괴합니다.</p>
+            <ul class="list-disc pl-5 text-sm text-slate-700 space-y-2 mb-4">
+                <li><strong>액체 질소 냉각 (82K):</strong> 온도를 극저온으로 낮추어, 손상으로 발생한 활성 산소 등 라디칼(Radical)의 확산을 막아 손상을 지연시킵니다.</li>
+                <li><strong>선량 제한 (e⁻/Å²):</strong> 보통 10~20 e⁻/Å² 정도면 신선한 상태를 유지하지만, 50을 넘어가면 고해상도 정보가 파괴되기 시작합니다.</li>
+                <li><strong>Dose Fractionation 기법:</strong> 현대 Direct Detector를 사용하여, 긴 노출 시간을 수십 개의 짧은 프레임 영화(Movie)로 쪼개어 촬영합니다. 이를 통해 초반 프레임의 고해상도 정보를 살리고, 프레임 간의 움직임(Drift)을 소프트웨어로 보정(Motion Correction)합니다.</li>
+            </ul>
+        </section>
+
+        <!-- Part 5 -->
+        <section id="part5">
+            <h2 class="section-title">Part 5 : Tomography (Cryo-ET)</h2>
+            <p class="text-slate-600 mb-4">
+                단 하나뿐인 고유한 구조(예: 특정 병원균 세포, 시냅스 내부 등)의 3D 형태를 파악하기 위해, 병원 CT 촬영처럼 샘플을 여러 각도로 기울여가며(Tilt series) 촬영하는 기법입니다.
+            </p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="concept-card">
+                    <h4 class="font-bold text-slate-800 mb-2 border-b pb-2">기하학적 한계: Missing Wedge</h4>
+                    <p class="text-sm text-slate-600 mb-2">
+                        현미경 구조상 샘플을 360도 회전할 수 없고, 보통 ±60° ~ ±70°까지만 기울일 수 있습니다. 기울기가 커질수록 통과해야 할 얼음 두께가 급증하기 때문입니다.
+                    </p>
+                    <p class="text-sm text-slate-600">
+                        이로 인해 푸리에 3D 공간 상에서 쐐기(Wedge) 모양으로 데이터를 수집하지 못하는 빈 공간이 생기며, z축(수직) 방향의 해상도가 떨어지고 구조가 위아래로 길어 보이는 인공물(Artifact)이 발생합니다.
+                    </p>
+                </div>
+                <div class="concept-card">
+                    <h4 class="font-bold text-slate-800 mb-2 border-b pb-2">해상도 돌파: Subtomogram Averaging</h4>
+                    <p class="text-sm text-slate-600 mb-2">
+                        하나의 톰그램(Tomogram) 자체의 해상도는 보통 3~10nm 수준으로 낮습니다. 방사선 손상 한계 때문에 여러 장의 사진에 선량을 분배해야 하기 때문입니다.
+                    </p>
+                    <p class="text-sm text-slate-600">
+                        하지만 톰그램 내부에 동일한 구조(예: 리보솜 수백 개)가 존재한다면, 이 작은 블록(Subtomogram)들을 잘라내어 서로 정렬(Alignment)하고 평균을 내어 신호대잡음비(SNR)를 극적으로 높여 분자 수준 해상도에 도달할 수 있습니다.
+                    </p>
+                </div>
+            </div>
+            
+            <p class="text-sm text-slate-700 bg-amber-50 border border-amber-200 p-4 rounded-lg">
+                <strong>💡 금 나노입자(Fiducial marker):</strong> 기울임(Tilt) 사진들을 3D로 정확히 엮어내기(Reconstruction) 위해, 사진마다 뚜렷하게 보이는 10nm 금 입자를 위치 추적용 랜드마크로 활용합니다.
+            </p>
+        </section>
+
+        <!-- Part 6 -->
+        <section id="part6">
+            <h2 class="section-title">Part 6 : Single Particle Analysis (SPA)</h2>
+            <p class="text-slate-600 mb-6 leading-relaxed">
+                정제된 동일한 단백질 입자들이 얼음 속에 무작위 방향으로 멈춰있는 수백만 장의 이미지를 촬영하고, 컴퓨테이션 파워를 통해 정렬하여 평균냄으로써 <strong>원자 수준(~1.5Å)의 3D 구조</strong>를 얻는 Cryo-EM의 가장 강력하고 대표적인 기법입니다.
+            </p>
+
+            <div class="space-y-6">
+                <div class="flex flex-col md:flex-row bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                    <div class="bg-blue-600 text-white p-6 flex flex-col justify-center items-center w-full md:w-1/4">
+                        <span class="text-4xl font-black mb-2">Step 1</span>
+                        <span class="font-bold text-center">Particle Picking</span>
+                    </div>
+                    <div class="p-6 w-full md:w-3/4">
+                        <p class="text-sm text-slate-700 mb-2">Micrograph 이미지 수천 장에서 실제 단백질 입자 위치를 찾아내어 작은 사각형 이미지(Box)로 잘라냅니다.</p>
+                        <p class="text-sm text-slate-600">초기에는 사람이 수동으로 몇 백개를 고르고(Manual picking), 이를 학습한 알고리즘이나 템플릿 매칭을 통해 수백만 개의 입자를 자동으로 추출(Auto picking)하여 Particle Stack을 만듭니다.</p>
+                    </div>
+                </div>
+
+                <div class="flex flex-col md:flex-row bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                    <div class="bg-blue-600 text-white p-6 flex flex-col justify-center items-center w-full md:w-1/4">
+                        <span class="text-4xl font-black mb-2">Step 2</span>
+                        <span class="font-bold text-center">2D Classification</span>
+                    </div>
+                    <div class="p-6 w-full md:w-3/4">
+                        <p class="text-sm text-slate-700 mb-2">잘라낸 입자들을 서로 비슷한 형태와 방향(Orientation)을 가진 것들끼리 묶어(Class) 2D 평균 이미지를 만듭니다.</p>
+                        <p class="text-sm text-slate-600">이 과정을 통해 무작위 노이즈가 상쇄되어 단백질의 뚜렷한 형태가 드러납니다. 형체가 불분명하거나 얼음 얼룩 등은 'Junk class'로 분류하여 데이터를 정제(Cleaning)하는 핵심 단계입니다.</p>
+                    </div>
+                </div>
+
+                <div class="flex flex-col md:flex-row bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                    <div class="bg-blue-600 text-white p-6 flex flex-col justify-center items-center w-full md:w-1/4">
+                        <span class="text-4xl font-black mb-2">Step 3</span>
+                        <span class="font-bold text-center">3D Refinement</span>
+                    </div>
+                    <div class="p-6 w-full md:w-3/4">
+                        <p class="text-sm text-slate-700 mb-2">대략적인 초기 3D 모델(Initial model)을 다양한 방향에서 투영(Reprojection)한 가상 이미지들과 실제 실험 입자들을 비교하여, 각 입자가 3D상에서 어느 방향을 보고 있는지 수학적으로 할당(Orientation assignment)합니다.</p>
+                        <p class="text-sm text-slate-600">할당된 각도 정보들을 바탕으로 푸리에 공간을 채워넣고 역변환(IFT)하여 더 정밀한 새로운 3D 모델을 만들며, 이 사이클을 수렴할 때까지 반복(Iterative)하여 해상도를 극대화합니다.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-green-50 p-5 border-l-4 border-green-500 mt-8 rounded-r-lg">
+                <h4 class="font-bold text-green-800 text-lg mb-2">검증: Gold-Standard Refinement & FSC</h4>
+                <p class="text-sm text-green-800 mb-2">
+                    단백질 입자 데이터셋을 무작위로 절반씩 나눈 뒤(Half-set A, B), 두 세트를 <strong>초기 모델부터 정렬까지 완전히 독립적으로 3D 재구성</strong>합니다.
+                </p>
+                <p class="text-sm text-green-700">
+                    그 후 두 독립적인 3D 맵의 일치도를 주파수 껍질(Shell)별로 계산하는 <strong>FSC(Fourier Shell Correlation)</strong> 곡선을 그립니다. 곡선이 특정 임계값(예: 0.143)으로 떨어지는 지점을 공식적인 해상도로 보고하여, 노이즈가 단백질 구조로 둔갑하는 과적합(Overfitting, Reference bias) 현상을 철저히 방지합니다.
+                </p>
+            </div>
+        </section>
+
+        <!-- Part 7 -->
+        <section id="part7">
+            <h2 class="section-title">Part 7 : 2D Crystallography (2D 전자 결정학)</h2>
+            <p class="text-slate-600 mb-4">
+                생체막 환경에 존재하는 막 단백질(Membrane protein)이 인지질 이중층 안에서 2차원적인 격자(2D crystal array) 형태로 결합한 성질을 이용하여 고해상도 구조를 규명하는 방식입니다.
+            </p>
+
+            <ul class="list-disc pl-5 text-slate-700 space-y-3 mb-6 text-sm">
+                <li><strong class="text-slate-900">장점:</strong> 막 단백질을 계면활성제(Detergent)로 뽑아내지 않고 실제 <strong>지질막(Lipid bilayer) 환경</strong> 그대로 관찰할 수 있어, 생리학적으로 가장 자연스러운 구조와 기능을 이해하는 데 유리합니다.</li>
+                <li><strong class="text-slate-900">도전 과제 (Crystal Quality):</strong> 크고 완벽한 2D 결정을 형성하는 것 자체가 생화학적으로 매우 어렵습니다. 또한 얇은 막 형태라 탄소망 위에서 미세하게 주름지거나 구부러지는 현상(Bending)이 발생하여 회절 점들이 번지게 됩니다. 이를 해결하기 위해 이미지 내에서 격자 단위로 펴주는 <strong>Unbending 소프트웨어 처리</strong>가 필수적입니다.</li>
+                <li><strong class="text-slate-900">데이터 수집 (Phase Problem):</strong> 전자빔을 회절 모드(Diffraction mode)로 세팅하여 깔끔한 푸리에 점들을 획득합니다. 하지만 회절 패턴만으로는 진폭(Amplitude)만 얻을 수 있고 위상(Phase) 정보를 잃어버리게 되므로, 일반적인 이미징 모드 사진을 함께 섞어 위상 문제를 해결합니다.</li>
+            </ul>
+
+            <div class="bg-indigo-50 border border-indigo-100 p-5 rounded-xl shadow-sm">
+                <h4 class="font-bold text-indigo-800 text-lg flex items-center mb-2">🧬 특수 형태: Helical Tubes (나선형 튜브)</h4>
+                <p class="text-sm text-indigo-900 mb-3">
+                    근육의 액틴 미세섬유나 세균의 편모 같은 단백질들은 평면 2D 결정 대신 속이 빈 <strong>원통형 튜브(Helical tube)</strong> 형태로 자라납니다. 구조생물학자들은 이를 <strong>"둘둘 말려진 2D 결정"</strong>으로 간주합니다.
+                </p>
+                <p class="text-sm text-indigo-800">
+                    튜브 구조는 <strong>나선 대칭성(Helical symmetry)</strong>을 가지고 있어, 앞면과 뒷면의 정보가 겹쳐 보이고 축을 따라 동일한 구조가 계속 반복됩니다. 따라서 이론적으로 단 1장의 투영 이미지와 Layer-line 회절 패턴 정보만으로도 전체 3D 구조를 재구성할 수 있어, 신호대잡음비 극복과 해상도 확보에 매우 유리한 특징을 지닙니다.
+                </p>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="mt-20 pt-8 border-t border-gray-200 text-center text-sm text-gray-500 pb-10">
+            <p class="font-bold text-slate-400">Interactive Web Summary &bull; Getting Started in Cryo-EM</p>
+            <p class="mt-2 text-xs">Based on Caltech/HHMI Lectures &bull; Enhanced with JavaScript Simulations</p>
+        </footer>
+
+    </main>
+
+    <!-- Interactive Scripts -->
+    <script>
+        // --- 1D Fourier Waves Simulator ---
+        function drawWaves(ctx, width, height, a1, a2, a3) {
+            ctx.clearRect(0, 0, width, height);
+            
+            // Draw Center Line
+            ctx.strokeStyle = '#334155';
+            ctx.beginPath();
+            ctx.moveTo(0, height/2);
+            ctx.lineTo(width, height/2);
+            ctx.stroke();
+
+            // Draw Sum Wave
+            ctx.strokeStyle = '#60a5fa'; // blue-400
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            
+            for(let x = 0; x < width; x++) {
+                // scale x to radians (2 full cycles across width)
+                let rad = (x / width) * Math.PI * 4; 
+                
+                // Calculate y
+                let yVal = a1 * Math.sin(rad) + 
+                           a2 * Math.sin(rad * 2) + 
+                           a3 * Math.sin(rad * 3);
+                
+                // Scale y to canvas (max possible amp is roughly 6, so scale by 20)
+                let y = height/2 - (yVal * 20);
+                
+                if(x === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // Optionally draw the individual faint waves behind
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = '#3b82f640'; // faint blue
+            ctx.beginPath();
+            for(let x = 0; x < width; x++) {
+                let rad = (x / width) * Math.PI * 4; 
+                let y = height/2 - (a1 * Math.sin(rad) * 20);
+                if(x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            ctx.strokeStyle = '#22c55e40'; // faint green
+            ctx.beginPath();
+            for(let x = 0; x < width; x++) {
+                let rad = (x / width) * Math.PI * 4; 
+                let y = height/2 - (a2 * Math.sin(rad * 2) * 20);
+                if(x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            ctx.strokeStyle = '#ef444440'; // faint red
+            ctx.beginPath();
+            for(let x = 0; x < width; x++) {
+                let rad = (x / width) * Math.PI * 4; 
+                let y = height/2 - (a3 * Math.sin(rad * 3) * 20);
+                if(x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+        }
+
+        function updateWaves() {
+            const a1 = parseFloat(document.getElementById('wave1').value);
+            const a2 = parseFloat(document.getElementById('wave2').value);
+            const a3 = parseFloat(document.getElementById('wave3').value);
+            
+            document.getElementById('val1').innerText = a1.toFixed(1);
+            document.getElementById('val2').innerText = a2.toFixed(1);
+            document.getElementById('val3').innerText = a3.toFixed(1);
+
+            const canvas = document.getElementById('waveCanvas');
+            const ctx = canvas.getContext('2d');
+            drawWaves(ctx, canvas.width, canvas.height, a1, a2, a3);
+        }
+
+        function resetWaves() {
+            document.getElementById('wave1').value = 1.0;
+            document.getElementById('wave2').value = 0.5;
+            document.getElementById('wave3').value = 0.2;
+            updateWaves();
+        }
+
+        // --- CTF Simulator ---
+        function drawCTF() {
+            const canvas = document.getElementById('ctfCanvas');
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+            
+            const defocus_um = parseFloat(document.getElementById('defocusSlider').value);
+            document.getElementById('defocusVal').textContent = defocus_um.toFixed(1);
+            
+            // Physical parameters
+            const lambda = 0.0196; // Angstroms (for 300kV electrons)
+            const Cs = 2.7 * 1e7; // 2.7mm converted to Angstroms
+            const dz = defocus_um * 10000; // um to Angstroms
+            
+            ctx.clearRect(0, 0, width, height);
+            
+            // Draw Zero line
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, height/2);
+            ctx.lineTo(width, height/2);
+            ctx.stroke();
+            
+            // Draw CTF Curve
+            ctx.strokeStyle = '#60a5fa'; // blue-400
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            
+            // Plot to max Spatial Frequency k = 0.3 (approx 3.3 Angstrom resolution)
+            const maxK = 0.3; 
+            
+            for (let x = 0; x <= width; x++) {
+                // Map pixel x to spatial frequency k
+                const k = (x / width) * maxK;
+                
+                // Phase contrast transfer function: 
+                // chi = pi * lambda * dz * k^2 - 0.5 * pi * Cs * lambda^3 * k^4
+                // We use sin(chi) for the amplitude transfer
+                const phaseShift = Math.PI * lambda * dz * Math.pow(k, 2) - 0.5 * Math.PI * Cs * Math.pow(lambda, 3) * Math.pow(k, 4);
+                
+                // Envelope function mockup to simulate spatial/temporal coherence loss at high freq
+                // exp(-B * k^2), roughly scaling down higher frequencies
+                const envelope = Math.exp(-15 * Math.pow(k, 2)); 
+                
+                const ctf = Math.sin(phaseShift) * envelope;
+                
+                // Map ctf (-1 to 1) to canvas y
+                // Padding 20px top and bottom
+                const y = height/2 - (ctf * (height/2 - 20));
+                
+                if (x === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.stroke();
+
+            // Draw envelope outline (Optional visualization)
+            ctx.strokeStyle = '#3b82f640'; // very faint blue
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            for (let x = 0; x <= width; x++) {
+                const k = (x / width) * maxK;
+                const env = Math.exp(-15 * Math.pow(k, 2));
+                const y = height/2 - (env * (height/2 - 20));
+                if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            for (let x = width; x >= 0; x--) {
+                const k = (x / width) * maxK;
+                const env = -Math.exp(-15 * Math.pow(k, 2));
+                const y = height/2 - (env * (height/2 - 20));
+                ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+        }
+
+        // Initialize on load
+        window.onload = function() {
+            updateWaves();
+            drawCTF();
+        };
+    </script>
+</body>
+</html>
